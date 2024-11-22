@@ -1,110 +1,93 @@
-# -*- coding: utf-8 -*-
+#%%
+# # -*- coding: utf-8 -*-
 """
-Change res in line no 53, to get the chosen residue results
+Change res in line with "res = 'Y'", to get the chosen residue results
 """
 
-import functools
-import itertools
-import os
-import random
+# ------------------------------- Model Evaluation ---------------------------- #
 
+import matplotlib.pyplot as plt
+plt.ion()  # Enable interactive mode
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn import metrics
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split, KFold, cross_val_score
-from keras.callbacks import ModelCheckpoint
-from keras.layers import Dense, Activation, Flatten, Dropout, Reshape
-from keras.layers import Conv1D,Conv2D, MaxPooling2D
-from keras.models import Sequential,Model
-from keras.utils.np_utils import to_categorical
-from keras import optimizers
-from keras.optimizers import Adam,SGD
-from keras.layers.normalization import BatchNormalization
-from keras.regularizers import l2
-import copy
-from sklearn.metrics import roc_auc_score
+matplotlib.use('TkAgg')
 from Bio import SeqIO
-import pandas as pd
-from keras.layers import Bidirectional,TimeDistributed
+from Bio import SeqIO
 import keras
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, Reshape, Lambda, LSTM
-from keras.layers import Conv2D, MaxPooling2D
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 import numpy as np
-from Bio import SeqIO
 from numpy import array
-from numpy import argmax
-from sklearn.model_selection import train_test_split
-from imblearn.under_sampling import RandomUnderSampler
-from sklearn.utils import shuffle
-from keras.layers.embeddings import Embedding
-from keras import backend as K
-from keras.backend import expand_dims
-import matplotlib.pyplot as plt
-from keras.regularizers import l1, l2
 from sklearn.metrics import roc_curve, auc, classification_report
 from keras.models import load_model
 import pandas as pd
-import time
-res = 'Y' #'Y'
+
+# ------------------------------- Residue Selection ---------------------------- #
+
+res = 'Y'
 x_test = []
 y_test = []
-posit_1 = 1;
-negat_0 = 0;
+posit_1 = 1
+negat_0 = 0
 alphabet = 'ARNDCQEGHILKMFPSTWYV*'
 num_classes = 2
-win = 31
-win_size = 33# actual window size
+win = 27  # Update to match model input
+win_size = 33  # Actual window size
 cut_off = int((33 - win)/2)
 
 # define a mapping of chars to integers
 char_to_int = dict((c, i) for i, c in enumerate(alphabet))
 int_to_char = dict((i, c) for i, c in enumerate(alphabet))
-# Test DATASET -------------------------------------------------------------
-#for positive sequence
-def inner1():
-    #Input
+
+# ------------------------------- Test DATASET --------------------------------- #
+# ------------------------------- For Positive Sequence ------------------------ #
+
+def process_positive_sequence():
     data = seq_record.seq
     data = data[cut_off:-cut_off]
-    #rint(data) 
-    # integer encode input data
+    # Integer encode input data
     for char in data:
         if char not in alphabet:
             return
     integer_encoded = [char_to_int[char] for char in data]
     x_test.append(integer_encoded)
     y_test.append(posit_1)
-for seq_record in SeqIO.parse("dataset/test_Pos_"+str(res)+".fasta", "fasta"):
-    inner1()
-# for negative sequence
-def inner2():
-    #Input
+
+for seq_record in SeqIO.parse("dataset/test_Pos_" + str(res) + ".fasta", "fasta"):
+    process_positive_sequence()
+
+# ------------------------------- For Negative Sequence ------------------------ #
+
+def process_negative_sequence():
     data = seq_record.seq
     data = data[cut_off:-cut_off]
-    #print(data) 
-    # integer encode input data
+    # Integer encode input data
     for char in data:
         if char not in alphabet:
             return
     integer_encoded = [char_to_int[char] for char in data]
     x_test.append(integer_encoded)
     y_test.append(negat_0)
-for seq_record in SeqIO.parse("dataset/test_Neg_"+str(res)+".fasta", "fasta"):
-    inner2()
-# Changing to array (matrix)    
+
+for seq_record in SeqIO.parse("dataset/test_Neg_" + str(res) + ".fasta", "fasta"):
+    process_negative_sequence()
+
+# ------------------------------- Changing to array (matrix)  ------------------ #
+
 x_test = array(x_test)
+print(x_test.shape)
 test_y1 = array(y_test)
 y_test = keras.utils.to_categorical(test_y1, num_classes)
 
-model = load_model("ComDephos_"+str(res)+".h5")
-score = model.evaluate(x_test,y_test, verbose=0)
+# -------------------------------- Load the Model ------------------------------ #
+
+model_path = "ComDephos_" + str(res) + ".h5"
+model = load_model(model_path)
+score = model.evaluate(x_test, y_test, verbose=0)
+print(model.input_shape)
 print('Train-val loss:', score[0])
 print('Train-val accuracy:', score[1])
 acc_train = score[1]
+
+# ------------------------------- Scores --------------------------------------- #
+
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 Y_pred = model.predict(x_test)
@@ -116,11 +99,14 @@ y_pred1 = np.array(y_pred1)
 print("Matthews Correlation : ",matthews_corrcoef(y_test[:,1],y_pred1))
 print("Confusion Matrix : \n",confusion_matrix( y_test[:,1],y_pred1))
 mcc_train = matthews_corrcoef(y_test[:,1],y_pred1)
-# For sensitivity and specificity
-sp_1, sn_1 = confusion_matrix(y_test[:,1], y_pred1)
-sp_2_train = sp_1[0]/(sp_1[0]+sp_1[1])
-sn_2_train = sn_1[1]/(sn_1[0]+sn_1[1])
-# ROC
+
+# ------------------------------- Sensitivity and Specificity ------------------ #
+
+tn, fp, fn, tp = confusion_matrix(y_test[:,1], y_pred1).ravel()
+sp_2_train = tn / (tn + fp)
+sn_2_train = tp / (tp + fn)
+
+# ------------------------------- ROC ------------------------------------------ #
 
 fpr, tpr, _ = roc_curve(y_test[:,1], t_pred2)
 roc_auc_train = auc(fpr, tpr)
@@ -138,7 +124,5 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('ROC curve for'+str(res))
 plt.legend(loc="lower right")
+plt.savefig("roc_curve.png")
 plt.show()
-
-
-    
