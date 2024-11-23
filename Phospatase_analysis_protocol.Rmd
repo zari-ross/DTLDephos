@@ -1,0 +1,81 @@
+---
+title: "Protocol for identifying likely dephosphorylated residues and phosphatase activity"
+author: "Nataliya Trushina"
+date: "`r Sys.Date()`"
+output: 
+  word_document:
+    toc: true
+    reference_docx: "../Rmarkdown_template.docx"
+---
+
+# Introduction
+
+This protocol outlines the steps to analyze significantly dephosphorylated residues, predict their likelihood of active dephosphorylation, and infer potential phosphatase involvement using DTL-DephosphoSite models and additional tools.
+
+---
+
+# Step 1: Prepare dataset
+
+1. **Input data**:
+   - Start with a list of peptides showing significantly lower phosphorylation in the experimental condition versus control.
+   - Extract 31-residue windows around each residue of interest:
+     - **15 residues upstream** and **15 residues downstream**.
+   - Save the sequences in FASTA format:
+     - Example:
+       ```
+       >Protein_1_Pos_735
+       PKKQLILKVISGQQLPKPPDSMFGDSGEIIDPFVEVE
+       ```
+
+2. **Split by residue type**:
+   - Create two separate FASTA files:
+     - One for **S/T residues** (serine/threonine).
+     - One for **Y residues** (tyrosine).
+
+---
+
+# Step 2: Run the dtl-dephosphosite models
+
+1. **Input each file**:
+   - Run the **S/T model** for the S/T FASTA file.
+   - Run the **Y model** for the Y FASTA file.
+
+2. **Record predictions**:
+   - Count the number of residues predicted as **dephosphorylated** in each file.
+
+3. **Compare results**:
+   - Determine whether more S/T or Y residues were dephosphorylated.
+   - Identify proteins with residues showing both S/T and Y dephosphorylation, suggesting dual-specificity phosphatase activity.
+
+---
+
+# Step 3: Extend the analysis
+
+1. **Map results to proteins**:
+   - For each predicted dephosphorylated residue, map back to its original protein sequence to identify enriched proteins.
+
+2. **Predict specific phosphatases**:
+   - Use external tools to infer which phosphatases might target these residues:
+     - **DEPOD** ([http://depod.bioss.uni-freiburg.de/](http://depod.bioss.uni-freiburg.de/)): Provides known phosphatases for specific proteins and residues.
+     - **NetPhos 3.1** ([https://services.healthtech.dtu.dk/service.php?NetPhos-3.1](https://services.healthtech.dtu.dk/service.php?NetPhos-3.1)): Predicts phosphorylation sites and potential phosphatases.
+
+---
+
+# Step 4: Interpret results
+
+1. **Key insights**:
+   - Residues predicted as "dephosphorylated" suggest active phosphatase activity.
+   - Compare S/T versus Y residue dephosphorylation to infer the activity of S/T-specific or Y-specific phosphatases.
+
+2. **Dual-specificity phosphatases**:
+   - Identify potential dual-specificity phosphatases (e.g., PTEN) if the same protein has both S/T and Y dephosphorylation.
+
+3. **Experimental validation**:
+   - Select high-confidence predictions for follow-up experimental validation (e.g., phosphatase inhibitors or knockdown assays).
+
+---
+
+# Conclusion
+
+This protocol combines computational predictions with external tools and experimental insights to effectively identify likely phosphatases and their targets.
+
