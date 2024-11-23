@@ -7,10 +7,9 @@ Change res in line with "res = 'Y'", to get the chosen residue results
 # ------------------------------- Model Evaluation ---------------------------- #
 
 import matplotlib.pyplot as plt
-plt.ion()  # Enable interactive mode
+# plt.ion()  # Enable interactive mode
 import matplotlib
 matplotlib.use('TkAgg')
-from Bio import SeqIO
 from Bio import SeqIO
 import keras
 import numpy as np
@@ -18,6 +17,15 @@ from numpy import array
 from sklearn.metrics import roc_curve, auc, classification_report
 from keras.models import load_model
 import pandas as pd
+
+# import Bio
+# import sklearn
+# print("matplotlib:", matplotlib.__version__)
+# print("Biopython:", Bio.__version__)
+# print("keras:", keras.__version__)
+# print("numpy:", np.__version__)
+# print("scikit-learn:", sklearn.__version__)
+# print("pandas:", pd.__version__)
 
 # ------------------------------- Residue Selection ---------------------------- #
 
@@ -71,8 +79,7 @@ for seq_record in SeqIO.parse("dataset/test_Neg_" + str(res) + ".fasta", "fasta"
 
 # ------------------------------- Changing to array (matrix)  ------------------ #
 
-x_test = array(x_test)
-print(x_test.shape)
+x_test = array(x_test)  # print(x_test.shape) - for debugging from main
 test_y1 = array(y_test)
 y_test = keras.utils.to_categorical(test_y1, num_classes)
 
@@ -80,8 +87,7 @@ y_test = keras.utils.to_categorical(test_y1, num_classes)
 
 model_path = "ComDephos_" + str(res) + ".h5"
 model = load_model(model_path)
-score = model.evaluate(x_test, y_test, verbose=0)
-print(model.input_shape)
+score = model.evaluate(x_test, y_test, verbose=0)  # print(model.input_shape) - for debugging from main
 print('Train-val loss:', score[0])
 print('Train-val accuracy:', score[1])
 acc_train = score[1]
