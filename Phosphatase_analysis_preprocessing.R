@@ -5,9 +5,6 @@ library(Biostrings)
 
 source("config.R")
 
-window_size <- 31
-half_window <- (window_size - 1) / 2
-
 # ---------------------------------------------------------------------------- #
 
 dat_orig <- readxl::read_excel(path_to_file)
@@ -33,35 +30,50 @@ dat_proc <- dat_preproc %>%
 
 # ---------------------------------------------------------------------------- #
 
+window_size <- 33
+half_window <- (window_size - 1) / 2
+
 dat_proc <- dat_proc %>%
   dplyr::mutate(
-    Residue_window = purrr::map2_chr(
+    `Residue window` = purrr::map2_chr(
       Sequence, Position,
       ~ substr(.x, max(.y - half_window, 1), min(.y + half_window, nchar(.x)))
     )
   ) %>%
-  dplyr::filter(nchar(Residue_window) == window_size) %>%
+  dplyr::filter(nchar(`Residue window`) == window_size) %>%
   dplyr::mutate(
-    Start = Position - half_window,
-    End = Position + half_window,
-    `Fasta name` = paste0(`Fasta name`, "%", Start, "%", End)
+    `Window start` = Position - half_window,
+    `Window end` = Position + half_window,
+    `Fasta name` = paste0(">", `Fasta name`, "%", `Window start`, "%", `Window end`),
+    `Fasta line` = paste0(`Fasta name`, "\n", `Residue window`)
   )
+
+# Save the full preprocessed dataset
+readr::write_csv(dat_proc, paste0("dat_preproc/", condition, "_full_table.csv"))
 
 # ---------------------------------------------------------------------------- #
 
 fasta_lines_y <- dat_proc %>%
   dplyr::filter(stringr::str_starts(Phosphosite, "Y")) %>%
-  dplyr::mutate(
-    Fasta_line = paste0(">", `Fasta name`, "\n", Residue_window)
-  ) %>%
-  dplyr::pull(Fasta_line)
+  dplyr::pull(`Fasta line`)
 
 fasta_lines_st <- dat_proc %>%
   dplyr::filter(stringr::str_starts(Phosphosite, "[ST]")) %>%
-  dplyr::mutate(
-    Fasta_line = paste0(">", `Fasta name`, "\n", Residue_window)
-  ) %>%
-  dplyr::pull(Fasta_line)
+  dplyr::pull(`Fasta line`)
 
-writeLines(fasta_lines_y, "output_y.fasta")
-writeLines(fasta_lines_st, "output_st.fasta")
+writeLines(fasta_lines_y, paste0("dataset/", condition, "_output_Y.fasta"))
+writeLines(fasta_lines_st, paste0("dataset/", condition, "_output_ST.fasta"))
+
+
+# ---------------------------------------------------------------------------- #
+# 
+# sequences <- c(
+#   "EEQKSKRKGHEYTNIKYSLADQTSGDQSPLPPC",
+#   "IGMKGERRRGKGHDGLYQGLSTATKDTYDALHM",
+#   "TVAVPTVAAFPNTSSTSVPTSPEEHRPFEKVVN",
+#   "ERLSGSGLHWPLSRTRSEPLPPSATAPPPPGPM",
+#   "SPSSQEQQVTLFLSPASMSALQTSINQQDMQQS"
+# )
+# 
+# sequence_lengths <- sapply(sequences, nchar)
+# sequence_lengths
