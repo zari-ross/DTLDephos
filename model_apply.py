@@ -29,115 +29,75 @@ import pandas as pd
 # print("pandas:", pd.__version__)
 
 # ---------------------------------------------------------------------------- #
-# Residue Selection
 
-res = 'Y'
-x_test = []
-y_test = []
-posit_1 = 1
-negat_0 = 0
+# Configuration
+
+# Input parameters
+res = 'ST'  # Specify residue type: 'Y', 'S/T'
+condition = 'arsenite_decreased'  # Specify condition: treatment, 'increased', 'decreased'
+input_fasta = f"dataset/{condition}_output_{res}.fasta"  # Input FASTA file
+model_path = f"ComDephos_{res}.h5"  # Path to model
+output_csv = f"model_output/{condition}_{res}.csv"  # Output file for predictions
+
+# Model input window parameters
+if res == 'Y': # Update to match model input - Y: 27, ST: 31
+    win = 27 
+elif res == 'ST':
+    win = 31
+win_size = 33
+cut_off = int((33 - win) / 2)
+
+# Alphabet for sequence encoding
 alphabet = 'ARNDCQEGHILKMFPSTWYV*'
-num_classes = 2
-win = 27  # Update to match model input
-win_size = 33  # Actual window size
-cut_off = int((33 - win)/2)
-
-# define a mapping of chars to integers
 char_to_int = dict((c, i) for i, c in enumerate(alphabet))
-int_to_char = dict((i, c) for i, c in enumerate(alphabet))
 
 # ---------------------------------------------------------------------------- #
-# Test DATASET
-## For Positive Sequence
+# Helper functions
 
-def process_positive_sequence():
-    data = seq_record.seq
-    data = data[cut_off:-cut_off]
-    # Integer encode input data
-    for char in data:
+def encode_sequence(seq):
+    """
+    Encode the sequence as integers.
+    """
+    seq = seq[cut_off:-cut_off]
+    for char in seq:
         if char not in alphabet:
-            return
-    integer_encoded = [char_to_int[char] for char in data]
-    x_test.append(integer_encoded)
-    y_test.append(posit_1)
-
-for seq_record in SeqIO.parse("dataset/test_Pos_" + str(res) + ".fasta", "fasta"):
-    process_positive_sequence()
+            return None
+    return [char_to_int[char] for char in seq]
 
 # ---------------------------------------------------------------------------- #
-## For Negative Sequence
+# Process FASTA file
 
-def process_negative_sequence():
-    data = seq_record.seq
-    data = data[cut_off:-cut_off]
-    # Integer encode input data
-    for char in data:
-        if char not in alphabet:
-            return
-    integer_encoded = [char_to_int[char] for char in data]
-    x_test.append(integer_encoded)
-    y_test.append(negat_0)
+# Prepare data for prediction
+x_test = []
+seq_names = []
 
-for seq_record in SeqIO.parse("dataset/test_Neg_" + str(res) + ".fasta", "fasta"):
-    process_negative_sequence()
+for seq_record in SeqIO.parse(input_fasta, "fasta"):
+    encoded = encode_sequence(seq_record.seq)
+    if encoded:
+        x_test.append(encoded)
+        seq_names.append(seq_record.id)  # Save sequence names for mapping results
+
+x_test = array(x_test)  # Convert to NumPy array
 
 # ---------------------------------------------------------------------------- #
-# Changing to array (matrix)
+# Load model and predict
 
-x_test = array(x_test)  # print(x_test.shape) - for debugging from main
-test_y1 = array(y_test)
-y_test = keras.utils.to_categorical(test_y1, num_classes)
-
-# ---------------------------------------------------------------------------- #
-# Load the Model
-
-model_path = "ComDephos_" + str(res) + ".h5"
 model = load_model(model_path)
-score = model.evaluate(x_test, y_test, verbose=0)  # print(model.input_shape) - for debugging from main
-print('Train-val loss:', score[0])
-print('Train-val accuracy:', score[1])
-acc_train = score[1]
+predictions = model.predict(x_test)
+predicted_probabilities = predictions[:, 1]  # Extract probabilities for dephosphorylation
 
 # ---------------------------------------------------------------------------- #
-# Scores
+# Save results
 
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-Y_pred = model.predict(x_test)
-t_pred2 = Y_pred[:,1]
-Y_pred = (Y_pred > 0.5)
-y_pred1 = [np.argmax(y, axis=None, out=None) for y in Y_pred]
-y_pred1 = np.array(y_pred1)
+results = pd.DataFrame({
+    "Sequence ID": seq_names,
+    "Dephosphorylation Probability": predicted_probabilities
+})
 
-print("Matthews Correlation : ",matthews_corrcoef(y_test[:,1],y_pred1))
-print("Confusion Matrix : \n",confusion_matrix( y_test[:,1],y_pred1))
-mcc_train = matthews_corrcoef(y_test[:,1],y_pred1)
+threshold = 0.5  # Define threshold
+results["Dephosphorylation"] = results["Dephosphorylation Probability"].apply(
+    lambda x: "yes" if x >= threshold else "no"
+)
 
-# ---------------------------------------------------------------------------- #
-# Sensitivity and Specificity
-
-tn, fp, fn, tp = confusion_matrix(y_test[:,1], y_pred1).ravel()
-sp_2_train = tn / (tn + fp)
-sn_2_train = tp / (tp + fn)
-
-# ---------------------------------------------------------------------------- #
-# ROC
-
-fpr, tpr, _ = roc_curve(y_test[:,1], t_pred2)
-roc_auc_train = auc(fpr, tpr)
-print("AUC : ", roc_auc_train)
-print(classification_report(y_test[:,1], y_pred1))
-print("Specificity = ",sp_2_train, " Sensitivity = ",sn_2_train)
-plt.figure()
-lw = 2
-plt.plot(fpr, tpr, color='darkorange',
-         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc_train)
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC curve for'+str(res))
-plt.legend(loc="lower right")
-plt.savefig("roc_curve.png")
-plt.show()
+results.to_csv(output_csv, index=False)
+print(f"Predictions classified and saved to {output_csv}")
