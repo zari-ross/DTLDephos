@@ -5,3 +5,7 @@
 archive*
 config*
 output*.fasta
+model_output*
+dat_preproc*
+dataset/arsen*
+dataset/H2*
