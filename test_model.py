@@ -31,14 +31,18 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
 # Residue Selection
 
-res = 'Y'
+res = 'ST'  # Specify residue type: 'Y', 'ST'
 x_test = []
 y_test = []
 posit_1 = 1
 negat_0 = 0
 alphabet = 'ARNDCQEGHILKMFPSTWYV*'
 num_classes = 2
-win = 27  # Update to match model input
+if res == 'Y': # Update to match model input - Y: 27, ST: 31
+    win = 27 
+elif res == 'ST':
+    win = 31
+
 win_size = 33  # Actual window size
 cut_off = int((33 - win)/2)
 
