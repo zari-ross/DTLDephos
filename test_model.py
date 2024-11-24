@@ -4,7 +4,8 @@
 Change res in line with "res = 'Y'", to get the chosen residue results
 """
 
-# ------------------------------- Model Evaluation ---------------------------- #
+# ---------------------------------------------------------------------------- #
+# Model Evaluation
 
 import matplotlib.pyplot as plt
 # plt.ion()  # Enable interactive mode
@@ -27,7 +28,8 @@ import pandas as pd
 # print("scikit-learn:", sklearn.__version__)
 # print("pandas:", pd.__version__)
 
-# ------------------------------- Residue Selection ---------------------------- #
+# ---------------------------------------------------------------------------- #
+# Residue Selection
 
 res = 'Y'
 x_test = []
@@ -44,8 +46,9 @@ cut_off = int((33 - win)/2)
 char_to_int = dict((c, i) for i, c in enumerate(alphabet))
 int_to_char = dict((i, c) for i, c in enumerate(alphabet))
 
-# ------------------------------- Test DATASET --------------------------------- #
-# ------------------------------- For Positive Sequence ------------------------ #
+# ---------------------------------------------------------------------------- #
+# Test DATASET
+## For Positive Sequence
 
 def process_positive_sequence():
     data = seq_record.seq
@@ -61,7 +64,8 @@ def process_positive_sequence():
 for seq_record in SeqIO.parse("dataset/test_Pos_" + str(res) + ".fasta", "fasta"):
     process_positive_sequence()
 
-# ------------------------------- For Negative Sequence ------------------------ #
+# ---------------------------------------------------------------------------- #
+## For Negative Sequence
 
 def process_negative_sequence():
     data = seq_record.seq
@@ -77,13 +81,15 @@ def process_negative_sequence():
 for seq_record in SeqIO.parse("dataset/test_Neg_" + str(res) + ".fasta", "fasta"):
     process_negative_sequence()
 
-# ------------------------------- Changing to array (matrix)  ------------------ #
+# ---------------------------------------------------------------------------- #
+# Changing to array (matrix)
 
 x_test = array(x_test)  # print(x_test.shape) - for debugging from main
 test_y1 = array(y_test)
 y_test = keras.utils.to_categorical(test_y1, num_classes)
 
-# -------------------------------- Load the Model ------------------------------ #
+# ---------------------------------------------------------------------------- #
+# Load the Model
 
 model_path = "ComDephos_" + str(res) + ".h5"
 model = load_model(model_path)
@@ -92,7 +98,8 @@ print('Train-val loss:', score[0])
 print('Train-val accuracy:', score[1])
 acc_train = score[1]
 
-# ------------------------------- Scores --------------------------------------- #
+# ---------------------------------------------------------------------------- #
+# Scores
 
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
@@ -106,13 +113,15 @@ print("Matthews Correlation : ",matthews_corrcoef(y_test[:,1],y_pred1))
 print("Confusion Matrix : \n",confusion_matrix( y_test[:,1],y_pred1))
 mcc_train = matthews_corrcoef(y_test[:,1],y_pred1)
 
-# ------------------------------- Sensitivity and Specificity ------------------ #
+# ---------------------------------------------------------------------------- #
+# Sensitivity and Specificity
 
 tn, fp, fn, tp = confusion_matrix(y_test[:,1], y_pred1).ravel()
 sp_2_train = tn / (tn + fp)
 sn_2_train = tp / (tp + fn)
 
-# ------------------------------- ROC ------------------------------------------ #
+# ---------------------------------------------------------------------------- #
+# ROC
 
 fpr, tpr, _ = roc_curve(y_test[:,1], t_pred2)
 roc_auc_train = auc(fpr, tpr)
