@@ -33,8 +33,8 @@ import pandas as pd
 # Configuration
 
 # Input parameters
-res = 'ST'  # Specify residue type: 'Y', 'S/T'
-condition = 'arsenite_decreased'  # Specify condition: treatment, 'increased', 'decreased'
+res = 'Y'  # Specify residue type: 'Y', 'S/T'
+condition = 'H2O2_decreased'  # Specify condition: treatment, 'increased', 'decreased', e.g. 'arsenite_decreased' 
 input_fasta = f"dataset/{condition}_output_{res}.fasta"  # Input FASTA file
 model_path = f"ComDephos_{res}.h5"  # Path to model
 output_csv = f"model_output/{condition}_{res}.csv"  # Output file for predictions
@@ -94,10 +94,5 @@ results = pd.DataFrame({
     "Dephosphorylation Probability": predicted_probabilities
 })
 
-threshold = 0.5  # Define threshold
-results["Dephosphorylation"] = results["Dephosphorylation Probability"].apply(
-    lambda x: "yes" if x >= threshold else "no"
-)
-
 results.to_csv(output_csv, index=False)
-print(f"Predictions classified and saved to {output_csv}")
+print(f"Predictions saved to {output_csv}")
