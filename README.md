@@ -53,11 +53,11 @@ Independent Testing code is provided. The model provided can be used to predict 
   - In Linux code will be $python3 test_model.py
   
 ## Prediction for your dataset
-If you want to use DTL-DephosphoSite to predict dephosphorylation sites in the protein of your interest, prepare your dataset in the same format as the test dataset, which is in FASTA format. 
-This model works for window size 31 only, meaning you should provide ~~25 residues~~ 15 residues downstream and ~~25 residues~~ 15 residues upstream for the residue of your interest. 
-e.g. if you want to predict whether the target residue(S/T/Y) in Position 735 in protein Q4KWH8 is dephosphorylated or not, the input file should contain 16 residues upstream of the target residue (position 735 in protein Q4KWH8) and 16 residues downstream of the target residue.
+If you want to use DTL-DephosphoSite to predict dephosphorylation sites in the protein of your interest, prepare your dataset in the same format as the test dataset in FASTA format. 
+This model works for window **size 33 only**, meaning you should provide **16 residues downstream and 16 residues upstream** for the residue of your interest.
 
 The general format for your dataset should be:
 
-sp|Q4KWH8|PLCH1_HUMAN%730%755
+>sp|Q4KWH8|PLCH1_HUMAN%730%755
+
 PKKQLILKVISGQQLPKPPDSMFGDSGEIIDPFVEVEIIGLPVDCCKDQTR
