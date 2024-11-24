@@ -2,3 +2,6 @@
 *.gif
 *.svg
 *.docx
+archive*
+config*
+output*.fasta
