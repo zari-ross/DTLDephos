@@ -96,7 +96,7 @@ dat_proc_combined <- dplyr::bind_rows(dat_proc_y, dat_proc_st) %>%
   dplyr::mutate(Dephosphorylation = ifelse(`Dephosphorylation Probability` > prob_cut_off, "yes", "no"))
 
 # Save combined table
-readr::write_csv(dat_proc_combined, paste0("dat_preproc/", condition, "_processed_with_predictions.csv"))
+readr::write_csv(dat_proc_combined, paste0("dat_proc/", condition, "_proc_with_predictions.csv"))
 
 # ---------------------------------------------------------------------------- #
 

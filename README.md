@@ -61,3 +61,7 @@ The general format for your dataset should be:
 >sp|Q4KWH8|PLCH1_HUMAN%730%755
 
 PKKQLILKVISGQQLPKPPDSMFGDSGEIIDPFVEVEIIGLPVDCCKDQTR
+
+
+
+# Preprocessing
