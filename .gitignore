@@ -10,5 +10,6 @@ config*
 output*.fasta
 model_output*
 dat_preproc*
+dat_proc*
 dataset/arsen*
 dataset/H2*
