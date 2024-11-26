@@ -31,68 +31,72 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
 
 # Configuration
+# condition = 'arsenite_decreased'  # Specify condition: treatment, 'increased', 'decreased', e.g. 'arsenite_decreased'
+# Read the exported configuration
+with open("config.txt", "r") as f:  # Read the configuration file, same as R pre- and post-processing
+    condition = f.read().strip()
+print(f"Condition: {condition}")
 
-# Input parameters
-res = 'Y'  # Specify residue type: 'Y', 'S/T'
-condition = 'H2O2_decreased'  # Specify condition: treatment, 'increased', 'decreased', e.g. 'arsenite_decreased' 
-input_fasta = f"dataset/{condition}_output_{res}.fasta"  # Input FASTA file
-model_path = f"ComDephos_{res}.h5"  # Path to model
-output_csv = f"model_output/{condition}_{res}.csv"  # Output file for predictions
+for res in ['Y', 'ST']:
+    # Input parameters
+    input_fasta = f"dataset/{condition}_output_{res}.fasta"  # Input FASTA file
+    model_path = f"ComDephos_{res}.h5"  # Path to model
+    output_csv = f"dat_preproc/{condition}_{res}.csv"  # Output file for predictions
 
-# Model input window parameters
-if res == 'Y': # Update to match model input - Y: 27, ST: 31
-    win = 27 
-elif res == 'ST':
-    win = 31
-win_size = 33
-cut_off = int((33 - win) / 2)
+    # Model input window parameters
+    if res == 'Y': # Update to match model input - Y: 27, ST: 31
+        win = 27 
+    elif res == 'ST':
+        win = 31
+    win_size = 33
+    cut_off = int((33 - win) / 2)
 
-# Alphabet for sequence encoding
-alphabet = 'ARNDCQEGHILKMFPSTWYV*'
-char_to_int = dict((c, i) for i, c in enumerate(alphabet))
+    # Alphabet for sequence encoding
+    alphabet = 'ARNDCQEGHILKMFPSTWYV*'
+    char_to_int = dict((c, i) for i, c in enumerate(alphabet))
 
-# ---------------------------------------------------------------------------- #
-# Helper functions
+    # ---------------------------------------------------------------------------- #
+    # Helper functions
 
-def encode_sequence(seq):
-    """
-    Encode the sequence as integers.
-    """
-    seq = seq[cut_off:-cut_off]
-    for char in seq:
-        if char not in alphabet:
-            return None
-    return [char_to_int[char] for char in seq]
+    def encode_sequence(seq):
+        """
+        Encode the sequence as integers.
+        """
+        seq = seq[cut_off:-cut_off]
+        for char in seq:
+            if char not in alphabet:
+                return None
+        return [char_to_int[char] for char in seq]
 
-# ---------------------------------------------------------------------------- #
-# Process FASTA file
+    # ---------------------------------------------------------------------------- #
+    # Process FASTA file
 
-# Prepare data for prediction
-x_test = []
-seq_names = []
+    # Prepare data for prediction
+    x_test = []
+    seq_names = []
 
-for seq_record in SeqIO.parse(input_fasta, "fasta"):
-    encoded = encode_sequence(seq_record.seq)
-    if encoded:
-        x_test.append(encoded)
-        seq_names.append(seq_record.id)  # Save sequence names for mapping results
+    for seq_record in SeqIO.parse(input_fasta, "fasta"):
+        encoded = encode_sequence(seq_record.seq)
+        if encoded:
+            x_test.append(encoded)
+            seq_names.append(seq_record.id)  # Save sequence names for mapping results
 
-x_test = array(x_test)  # Convert to NumPy array
+    x_test = array(x_test)  # Convert to NumPy array
 
-# ---------------------------------------------------------------------------- #
-# Load model and predict
+    # ---------------------------------------------------------------------------- #
+    # Load model and predict
 
-model = load_model(model_path)
-predictions = model.predict(x_test)
-predicted_probabilities = predictions[:, 1]  # Extract probabilities for dephosphorylation
+    model = load_model(model_path)
+    predictions = model.predict(x_test)
+    predicted_probabilities = predictions[:, 1]  # Extract probabilities for dephosphorylation
 
-# ---------------------------------------------------------------------------- #
-# Save results
+    # ---------------------------------------------------------------------------- #
+    # Save results
 
-results = pd.DataFrame({
-    "Sequence ID": seq_names,
-    "Dephosphorylation Probability": predicted_probabilities
-})
+    results = pd.DataFrame({
+        "Sequence ID": seq_names,
+        "Dephosphorylation Probability": predicted_probabilities
+    })
 
-results.to_csv(output_csv, index=False)
-print(f"Predictions saved to {output_csv}")
+    results.to_csv(output_csv, index=False)
+    print(f"Predictions saved to {output_csv}")
