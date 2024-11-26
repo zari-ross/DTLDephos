@@ -10,15 +10,15 @@ source("config.R")
 dat_proc <- readr::read_csv(paste0("dat_preproc/", condition, "_full_table.csv"))
 
 # Load model outputs
-output_y <- readr::read_csv(paste0("model_output/", condition, "_Y.csv")) %>%
+output_y <- readr::read_csv(paste0("dat_preproc/", condition, "_Y.csv")) %>%
   dplyr::mutate(`Sequence ID` = paste0(">", `Sequence ID`)) %>%
   dplyr::distinct(`Sequence ID`, .keep_all = TRUE)
-output_st <- readr::read_csv(paste0("model_output/", condition, "_ST.csv")) %>%
+output_st <- readr::read_csv(paste0("dat_preproc/", condition, "_ST.csv")) %>%
   dplyr::mutate(`Sequence ID` = paste0(">", `Sequence ID`)) %>%
   dplyr::distinct(`Sequence ID`, .keep_all = TRUE)
 
 # Sometimes, the score is a bit different
-# your_data <- readr::read_csv(paste0("model_output/", condition, "_ST.csv")) %>%
+# your_data <- readr::read_csv(paste0("dat_preproc/", condition, "_ST.csv")) %>%
 #   dplyr::mutate(`Sequence ID` = paste0(">", `Sequence ID`)) 
 # distinct_sequence_id <- your_data %>%
 #   distinct(`Sequence ID`, .keep_all = TRUE)
@@ -55,7 +55,8 @@ plot_fractions <- ggplot(fraction_dephos, aes(x = Residue, y = Fraction, fill = 
   geom_bar(stat = "identity", position = "fill", color = "black", width = 0.5) +
   scale_fill_manual(values = c("Yes" = "purple", "No" = "gray"), name = "Dephosphorylated") +
   labs(
-    title = paste("Relative fractions of dephosphorylated sites\nModel cut-off =", prob_cut_off),
+    title = paste(condition,
+                  "\nRelative fractions of dephosphorylated sites\nModel cut-off =", prob_cut_off),
     x = "Residue Type (Total Count)",
     y = "Fraction"
   ) +
@@ -102,12 +103,31 @@ readr::write_csv(dat_proc_combined, paste0("dat_proc/", condition, "_proc_with_p
 
 dat_proc_combined <- dat_proc_combined %>% 
   dplyr::select(Gene, Phosphosite, Dephosphorylation, Change) %>%
-  filter(Change == "Decreased" & Dephosphorylation == "yes") %>%
+  filter(Change == "Decreased") %>%
   dplyr::distinct(.keep_all = TRUE)
+
+# ---------------------------------------------------------------------------- #
 
 dat_orig <- readxl::read_excel(path_to_file) %>%
   dplyr::left_join(dat_proc_combined, 
                    by = c("Gene", "Change", "Phosphosite"))
+
+print(paste0(
+  length(unique(dat_orig$Phosphopeptide[dat_orig$Dephosphorylation == "yes"])), 
+  sum(!is.na(dat_orig$Phosphopeptide[dat_orig$Dephosphorylation == "yes"])),
+  " phosphosites (some phosphopeptides have multiple sites and different phosphopeptides might have the same sites). These map to ",
+  length(unique(dat_orig$Gene_phosphosite[dat_orig$Dephosphorylation == "yes"])), 
+  " unique phosphosites."
+))
+
+print(paste0(
+  length(unique(dat_orig$Phosphopeptide[dat_orig$Dephosphorylation == "no"])), 
+  " unique phosphopeptides (peptide sequences with phosphorylation) are present in the dataset where dephosphorylation did not occur. These include a total of ",
+  sum(!is.na(dat_orig$Phosphopeptide[dat_orig$Dephosphorylation == "no"])),
+  " phosphosites (some phosphopeptides have multiple sites and different phosphopeptides might have the same sites). These map to ",
+  length(unique(dat_orig$Gene_phosphosite[dat_orig$Dephosphorylation == "no"])), 
+  " unique phosphosites."
+))
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #

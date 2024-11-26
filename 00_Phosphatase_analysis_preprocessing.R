@@ -40,6 +40,7 @@ dat_proc <- dat_proc %>%
       ~ substr(.x, max(.y - half_window, 1), min(.y + half_window, nchar(.x)))
     )
   ) %>%
+  # IMPORTANT the sites too close 
   dplyr::filter(nchar(`Residue window`) == window_size) %>%
   dplyr::mutate(
     `Window start` = Position - half_window,
@@ -53,6 +54,25 @@ readr::write_csv(dat_proc, paste0("dat_preproc/", condition, "_full_table.csv"))
 
 # ---------------------------------------------------------------------------- #
 
+# length(dat_proc$Phosphopeptide)
+# length(unique(dat_proc$Phosphopeptide))
+# length(unique(dat_proc$Gene_phosphosite))
+
+print(paste0(
+  length(unique(dat_proc$Phosphopeptide)), 
+  " unique phosphopeptides (peptide sequences with phosphorylation) are present in the dataset. These phosphopeptides lie further than ", half_window, " residues from the protein start or end. These include a total of ",
+  length(dat_proc$Phosphopeptide),
+  " phosphosites (some phosphopeptides have multiple sites and different phosphopeptides might have the same sites). These map to ",
+  length(unique(dat_proc$Gene_phosphosite)), 
+  " unique phosphosites."
+))
+
+# Only unique sites are left to prevent duplicate predictions
+dat_proc <- dat_proc %>%
+  distinct(Gene_phosphosite, .keep_all = TRUE)
+
+# ---------------------------------------------------------------------------- #
+
 fasta_lines_y <- dat_proc %>%
   dplyr::filter(stringr::str_starts(Phosphosite, "Y")) %>%
   dplyr::pull(`Fasta line`)
@@ -63,17 +83,3 @@ fasta_lines_st <- dat_proc %>%
 
 writeLines(fasta_lines_y, paste0("dataset/", condition, "_output_Y.fasta"))
 writeLines(fasta_lines_st, paste0("dataset/", condition, "_output_ST.fasta"))
-
-
-# ---------------------------------------------------------------------------- #
-# 
-# sequences <- c(
-#   "EEQKSKRKGHEYTNIKYSLADQTSGDQSPLPPC",
-#   "IGMKGERRRGKGHDGLYQGLSTATKDTYDALHM",
-#   "TVAVPTVAAFPNTSSTSVPTSPEEHRPFEKVVN",
-#   "ERLSGSGLHWPLSRTRSEPLPPSATAPPPPGPM",
-#   "SPSSQEQQVTLFLSPASMSALQTSINQQDMQQS"
-# )
-# 
-# sequence_lengths <- sapply(sequences, nchar)
-# sequence_lengths
