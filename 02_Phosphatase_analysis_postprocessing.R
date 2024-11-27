@@ -4,6 +4,8 @@ library(tidyverse)
 
 source("config.R")
 
+dir.create(paste0("dat_proc/", condition))
+
 # ---------------------------------------------------------------------------- #
 
 # Load preprocessed dataset
@@ -79,7 +81,7 @@ plot_fractions <- ggplot(fraction_dephos, aes(x = Residue, y = Fraction, fill = 
 
 plot_fractions
 
-ggsave(plot_fractions, filename = paste0("dat_proc/plot_fractions_", condition, "_", prob_cut_off, ".png"), width = 4, height = 4)
+ggsave(plot_fractions, filename = paste0("dat_proc/", condition, "/plot_fractions", ".png"), width = 4, height = 4)
 
 # ---------------------------------------------------------------------------- #
 
@@ -97,7 +99,7 @@ dat_proc_combined <- dplyr::bind_rows(dat_proc_y, dat_proc_st) %>%
   dplyr::mutate(Dephosphorylation = ifelse(`Dephosphorylation Probability` > prob_cut_off, "yes", "no"))
 
 # Save combined table
-readr::write_csv(dat_proc_combined, paste0("dat_proc/", condition, "_proc_with_predictions.csv"))
+writexl::write_xlsx(dat_proc_combined, paste0("dat_proc/", condition, "/proc_with_predictions.xlsx"))
 
 # ---------------------------------------------------------------------------- #
 
@@ -201,7 +203,7 @@ plot_volcano <- ggplot(dat_plot, aes(x = logFC, y = Significance_new, colour = C
 
 plot_volcano
 
-ggsave(plot_volcano, filename = paste("dat_proc/plot_volcano_", norm_opt, "_", condition, "_", prob_cut_off, ".png", sep=""), width = 8, height = 6)
+ggsave(plot_volcano, filename = paste("dat_proc/", condition, "/plot_volcano_", norm_opt, ".png", sep=""), width = 8, height = 6)
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
@@ -219,6 +221,9 @@ dat_plot_decreased <- dat_plot %>%
       relationship = "many-to-many"
   ) %>%
   filter(!is.na(`Phosphatase entry names`))
+
+# Save table
+writexl::write_xlsx(dat_plot_decreased, paste0("dat_proc/", condition, "/proc_onlyPredictedDephosph_withPhosphatases.xlsx"))
 
 # ---------------------------------------------------------------------------- #
 
@@ -246,7 +251,7 @@ plot_phosphatase_mapping <- ggplot(phosphatase_count, aes(x = reorder(`Phosphata
 
 plot_phosphatase_mapping
 
-ggsave(plot_phosphatase_mapping, filename = paste0("dat_proc/plot_phosphatase_mapping_", condition, "_", prob_cut_off, ".png"), width = 6, height = 4)
+ggsave(plot_phosphatase_mapping, filename = paste0("dat_proc/", condition, "/plot_phosphatase_mapping", ".png"), width = 6, height = 4)
 
 # ---------------------------------------------------------------------------- #
 
@@ -282,4 +287,26 @@ plot_ggraph <- ggraph::ggraph(graph, layout = 'fr') +
 
 plot_ggraph
 
-ggsave(plot_ggraph, filename = paste0("dat_proc/plot_ggraph_", condition, "_", prob_cut_off, ".png"), width = 6, height = 5)
+ggsave(plot_ggraph, filename = paste0("dat_proc/", condition, "/plot_ggraph", ".png"), width = 6, height = 5)
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+
+library(igraph)
+library(ggraph)
+
+# Create a bipartite graph
+edges <- dat_plot_decreased %>% select(Phosphopeptide, Gene_phosphosite)
+graph <- graph_from_data_frame(edges)
+
+# Plot
+plot_ggraph_peptide_site <- ggraph(graph, layout = "fr") +
+  geom_edge_link(aes(color = after_stat(index))) +
+  geom_node_point() +
+  geom_node_text(aes(label = name), repel = TRUE, max.overlaps = 20) +
+  theme_void()
+
+plot_ggraph_peptide_site
+
+ggsave(plot_ggraph_peptide_site, filename = paste0("dat_proc/", condition, "/plot_ggraph_peptide_site", ".png"), width = 20, height = 15)
