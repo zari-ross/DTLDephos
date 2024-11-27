@@ -1,0 +1,100 @@
+---
+title: "Identifying likely dephosphorylated residues and specific phosphatase activity"
+author: "Nataliya Trushina"
+date: "`r Sys.Date()`"
+output: 
+  word_document:
+    toc: true
+    reference_docx: "../Rmarkdown_template.docx"
+---
+
+# Introduction and model choice
+
+As phosphatase activity prediction proxy, we used the DTL-DephosSite model[1], a deep learning tool for predicting protein dephosphorylation sites. It uses transfer learning based on kinase-specific phosphorylation site prediction, capturing shared sequence patterns and biochemical features between phosphorylation and dephosphorylation. The lower network layers are pre-trained on phosphorylation data, while the upper layers are trained specifically on dephosphorylation to adapt for phosphatase predictions.
+
+Earlier models, such as those in [2], [3], and [4], introduced computational approaches for dephosphorylation site prediction, but their servers are no longer available.
+
+
+1. Chaudhari, M., Thapa, N., Ismail, H., Chopade, S., Caragea, D., Köhn, M., ... & Kc, D. B. (2021). DTL-DephosSite: Deep transfer learning based approach to predict dephosphorylation sites. Frontiers in cell and developmental biology, 9, 662983. https://www.frontiersin.org/journals/cell-and-developmental-biology/articles/10.3389/fcell.2021.662983/full
+
+2. Wang, X., Yan, R., & Song, J. (2016). DephosSite: a machine learning approach for discovering phosphotase-specific dephosphorylation sites. Scientific Reports, 6(1), 23510. https://pmc.ncbi.nlm.nih.gov/articles/PMC4802303/
+
+3. Jia, C., He, W., & Zou, Q. (2017). DephosSitePred: a high accuracy predictor for protein dephosphorylation sites. Combinatorial Chemistry & High Throughput Screening, 20(2), 153-157. https://pubmed.ncbi.nlm.nih.gov/28031011/
+
+4.Wu, Z., Lu, M., & Li, T. (2014). Prediction of substrate sites for protein phosphatases 1B, SHP-1, and SHP-2 based on sequence features. Amino Acids, 46, 1919-1928.
+https://link.springer.com/article/10.1007/s00726-014-1739-6
+
+---
+
+# Step 1 - Preprocessing: Prepare dataset in the required format
+
+Use the output from `phosphoproteomics_PEAKSonline.R` (https://github.com/Department-of-Neurobiology/Meta-Proteomics). Create a `config.R` file to save the configureations for all the pipeline scripts.
+
+```{r}
+path_to_file <- "Dataset_processesed_annotated_for_iGPS_and_KEA2_full.xlsx"
+condition <- "arsenite_decreased"
+col_control <- "#4f4f4f"
+col_exp <- "#ED6B4D"
+prob_cut_off <- 0.5
+writeLines(condition, "config.txt")  # For running Python script with the same condition
+
+```
+
+Run `00_Phosphatase_analysis_preprocessing.R`:
+
+1. Start with a list of peptides showing significantly **lower** phosphorylation in the experimental condition (H2O2 or arsenite) versus control.
+
+2. Extract 31-residue windows around each residue of interest:
+     - **15 residues upstream** and **15 residues downstream**.
+     
+3. Save the sequences in FASTA format:
+     - Example:
+       ```
+       >sp|Q63788|P85B_RAT%583%615
+       RKINEWLGIKNETEDQYSLMEDEDALPHHEERT"
+       ```
+4. Split by residue type:
+   - Create two separate FASTA files:
+     - One for **S/T residues** (serine/threonine).
+     - One for **Y residues** (tyrosine).
+
+
+```{r}
+source("00_Phosphatase_analysis_preprocessing.R")
+
+```
+
+---
+
+# Step 2 - Modelling: Run the DTL-DephosphoSite models
+
+Run `01_model_apply.py`:
+
+1. Both models are run directly. 
+
+2. Y-model was trained on shorter sequences so it requires a different input for the window size.
+
+3. The prediction score is given as a probability. The sensitivity and specificity of the models was calculated based on the cut-off of 0.5. 
+
+---
+
+# Step 3 - Postprocessing: Extend the analysis
+
+1. Count the fractions of predicted sites to negative.
+
+2. Predict specific phosphatases:
+   - **DEPOD** ([http://depod.bioss.uni-freiburg.de/](http://depod.bioss.uni-freiburg.de/)): Provides known phosphatases for specific proteins and residues. Download "Inter-relations between human phosphatases, kinases and their common substrates" dataset.
+
+3. Translate human to rat ortologs and check the possible phosphatases and substrates in the proteins with decrease phosphorylation upon treatment.
+
+*Note: DEPOD database is relatively small, ortolog translation does not achieve better matching*
+
+4.The proteins of interest have to be checked to see if the decreased phosphosites were possibly the ortologous site in the DEPOD database.
+
+---
+
+# Conclusion
+
+Residues predicted as "dephosphorylated" suggest active phosphatase activity.
+
+
