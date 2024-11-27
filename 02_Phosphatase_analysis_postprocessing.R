@@ -212,10 +212,10 @@ depod_with_genes <- readr::read_csv("depod_with_gene_names.csv")
 dat_plot_decreased <- dat_plot %>%
   filter(Change == "Decreased" & Dephosphorylation == "yes") %>%
   dplyr::distinct(.keep_all = TRUE) %>%
-  mutate(Gene = toupper(Gene)) %>%
+  # mutate(Gene = toupper(Gene)) %>%
   left_join(
     depod_with_genes,
-    by = c("Gene" = "Substrate entry names"),
+    by = c("Gene" = "RAT_SYMBOL"),
       relationship = "many-to-many"
   ) %>%
   filter(!is.na(`Phosphatase entry names`))
@@ -248,3 +248,38 @@ plot_phosphatase_mapping
 
 ggsave(plot_phosphatase_mapping, filename = paste0("dat_proc/plot_phosphatase_mapping_", condition, "_", prob_cut_off, ".png"), width = 6, height = 4)
 
+# ---------------------------------------------------------------------------- #
+
+library(igraph)
+library(ggraph)
+
+edges <- dat_plot_decreased %>%
+  dplyr::select(Gene, RAT_SYMBOL_phosp) %>%
+  tidyr::drop_na()
+
+graph <- igraph::graph_from_data_frame(edges, directed = FALSE)
+
+plot_ggraph <- ggraph::ggraph(graph, layout = 'fr') +
+  ggraph::geom_node_point(
+    aes(
+      shape = ifelse(name %in% edges$RAT_SYMBOL_phosp, "Phosphatase", "Substrate")
+      )
+    , color = ifelse(igraph::V(graph)$name %in% edges$RAT_SYMBOL_phosp, "red", "black")) +
+  ggraph::geom_node_text(
+    aes(label = name),
+    repel = TRUE,
+    size = 3
+    , color = ifelse(igraph::V(graph)$name %in% edges$RAT_SYMBOL_phosp, "red", "black")
+  ) +
+  ggraph::geom_edge_link() +
+  theme_minimal() +
+  labs(
+    shape = "Node type"
+  ) +
+  theme(
+    plot.title = element_blank()
+  )
+
+plot_ggraph
+
+ggsave(plot_ggraph, filename = paste0("dat_proc/plot_ggraph_", condition, "_", prob_cut_off, ".png"), width = 6, height = 5)
